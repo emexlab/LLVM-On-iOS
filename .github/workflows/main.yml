@@ -26,7 +26,13 @@ jobs:
           make all
       - name: create CoreCompiler framework archive
         run: tar -cJf CoreCompiler.framework.tar.xz CoreCompiler.framework
+      - name: create CoreCompilerSupportLibs archive
+        run: tar -cJf CoreCompilerSupportLibs.tar.xz CoreCompilerSupportLibs
       - uses: actions/upload-artifact@v4
         with:
           name: CoreCompiler.framework
           path: CoreCompiler.framework.tar.xz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CoreCompilerSupportLibs
+          path: CoreCompilerSupportLibs.tar.xz
