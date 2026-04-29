@@ -5,7 +5,7 @@ LLVM_ARCH := AArch64
 APPLE_ARCH := arm64
 TARGET_TRIPLE := $(APPLE_ARCH)-apple-ios$(OS_VER)
 SWIFT_BRANCH ?= swift-6.3.1-RELEASE
-SWIFT_SOURCE_DIR ?= swift-source
+SWIFT_SOURCE_DIR ?= swift
 SWIFT_TOOLCHAIN_ZIP := SwiftToolchain.zip
 SWIFT_TOOLCHAIN_ROOT ?= SwiftToolchain-iphoneos
 
@@ -18,14 +18,14 @@ endef
 all: CoreCompiler.framework/CoreCompiler
 
 # Fetch & Build Swift and LLVM for iOS
-swift-source:
+swift:
 	$(call log_info,fetching swift sources ($(SWIFT_BRANCH)))
 	SWIFT_BRANCH="$(SWIFT_BRANCH)" SWIFT_SOURCE_DIR="$(SWIFT_SOURCE_DIR)" Scripts/build-swift-toolchain.sh fetch
 	$(call log_info,bypassing lld darwin incompatibility)
 	perl -i -0pe 's|(// Swift LLVM fork downstream change start\n)(.*?)(// Swift LLVM fork downstream change end\n)|$$1/* NYXIAN: apple lies, lld works fine for MachO\n$$2*/\n$$3|s' \
 	llvm-project/lld/MachO/InputFiles.cpp
 
-SwiftToolchain-iphoneos: swift-source
+SwiftToolchain-iphoneos: swift
 	$(call log_info,building iOS-native swift toolchain ($(SWIFT_BRANCH)))
 	SWIFT_BRANCH="$(SWIFT_BRANCH)" SWIFT_SOURCE_DIR="$(SWIFT_SOURCE_DIR)" Scripts/build-swift-toolchain.sh build
 
