@@ -15,7 +15,7 @@ define log_info
 endef
 
 # Main Target
-all: CoreCompiler.framework/CoreCompiler
+all: LLVM.xcframework
 
 # Fetch & Build Swift and LLVM for iOS
 swift:
@@ -52,33 +52,37 @@ SWIFT_STATIC_LIBS = $(wildcard $(SWIFT_TOOLCHAIN_ROOT)/lib/libswift*.a) \
                     $(wildcard $(ROOT)/build/LLVMClangSwift_iphoneos/cmark-iphoneos-arm64/src/libcmark-gfm.a) \
                     $(wildcard $(ROOT)/build/LLVMClangSwift_iphoneos/cmark-iphoneos-arm64/extensions/libcmark-gfm-extensions.a)
 SWIFT_HOST_COMPILER_DYLIBS = $(wildcard $(SWIFT_TOOLCHAIN_ROOT)/lib/swift/host/compiler/lib_Compiler*.dylib)
-SWIFT_LINK_PATHS = -L$(SWIFT_TOOLCHAIN_ROOT)/lib \
-                   -L$(SWIFT_TOOLCHAIN_ROOT)/lib/swift/iphoneos \
-                   -L$(SWIFT_TOOLCHAIN_ROOT)/lib/swift/iphoneos/$(APPLE_ARCH) \
-                   -L$(SWIFT_TOOLCHAIN_ROOT)/lib/swift/host/compiler
-INC = -ISource -ISwiftToolchain-iphoneos/include -Illvm-project/lld/include -Illvm-project/clang/include -Illvm-project/llvm/include -Ibuild/LLVMClangSwift_iphoneos/llvm-iphoneos-arm64/tools/clang/include -Iswift/include -Iswift/stdlib/public/SwiftShims
 
-CoreCompiler.framework/CoreCompiler: swift-toolchain
-	$(call log_info,building CoreCompiler framework)
+LLVM.xcframework: swift-toolchain
+LLVM.xcframework:
+	$(call log_info,bundling CoreCompilerSupportLibs)
 	-rm -rf CoreCompilerSupportLibs
-	-rm *.o
-	clang -c -target $(TARGET_TRIPLE) -isysroot $(SDK) $(INC) Source/CoreCompiler/*.c
-	clang -c -fobjc-arc -ObjC -target $(TARGET_TRIPLE) -isysroot $(SDK) $(INC) Source/CoreCompiler/*.m
-	clang++ -c -Wno-elaborated-enum-base -std=c++17 -target $(TARGET_TRIPLE) -isysroot $(SDK) $(INC) Source/CoreCompiler/*.cpp
-	clang++ -fobjc-arc -fno-rtti -fno-exceptions -fvisibility=hidden -fvisibility-inlines-hidden -ffunction-sections -fdata-sections -Wl,-dead_strip -flto=full -Os -fno-exceptions -Wl,-x -Wl,-S -Wl,-dead_strip_dylibs -ObjC -target $(TARGET_TRIPLE) -isysroot $(SDK) $(SWIFT_LINK_PATHS) *.o $(SWIFT_STATIC_LIBS) $(SWIFT_HOST_COMPILER_DYLIBS) -framework CoreFoundation -lz -lxml2 -lswiftCore -o CoreCompiler.framework/CoreCompiler -shared -fPIC -install_name @rpath/CoreCompiler.framework/CoreCompiler
-	-rm *.o
-	-rm -rf CoreCompiler.framework/Headers
-	mkdir -p CoreCompiler.framework/Headers
-	cp Source/CoreCompiler/*.h CoreCompiler.framework/Headers/
 	mkdir CoreCompilerSupportLibs
 	cp $(SWIFT_HOST_COMPILER_DYLIBS) CoreCompilerSupportLibs/
+	$(call log_info,bundling LLVM xcframework headers)
+	-rm -rf Headers
+	mkdir Headers
+	cp -r SwiftToolchain-iphoneos/include/* Headers/
+	cp -r llvm-project/lld/include/* Headers/
+	cp -r llvm-project/clang/include/* Headers/
+	cp -r llvm-project/llvm/include/* Headers/
+	cp -r build/LLVMClangSwift_iphoneos/llvm-iphoneos-arm64/tools/clang/include/* Headers/
+	rm -rf Headers/swift/Bridging
+	cp -r swift/include/* Headers/
+	cp -r swift/stdlib/public/SwiftShims/* Headers/
+	$(call log_info,create llvm.a)
+	-rm -rf llvm.a
+	libtool -static -o llvm.a $(SWIFT_STATIC_LIBS)
+	$(call log_info,bundling LLVM xcframework)
+	-rm -rf LLVM.xcframework
+	xcodebuild -create-xcframework -library "./llvm.a" -headers "Headers" -output LLVM.xcframework
 
 # Cleanup
 clean-artifacts:
 	-rm *.o
 	-rm -rf CoreCompilerSupportLibs
-	-rm CoreCompiler.framework/CoreCompiler
-	-rm CoreCompiler.framework/Headers/*
+	-rm -rf LLVM.xcframework
+	-rm -rf Headers
 
 clean: clean-artifacts
 	$(call log_info,cleaning up)
@@ -89,7 +93,5 @@ clean: clean-artifacts
 		! -name .git \
 		! -name .gitignore \
 		! -name .github \
-		! -name CoreCompiler.framework \
-		! -name Source \
 		! -name Scripts \
 		-exec rm -rf {} +

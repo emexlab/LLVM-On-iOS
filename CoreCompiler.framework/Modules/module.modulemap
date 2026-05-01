@@ -1,5 +1,0 @@
-framework module CoreCompiler {
-    umbrella header "CoreCompiler.h"
-    export *
-    module * { export * }
-}
