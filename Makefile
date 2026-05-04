@@ -24,6 +24,8 @@ swift:
 	$(call log_info,bypassing lld darwin incompatibility)
 	perl -i -0pe 's|(// Swift LLVM fork downstream change start\n)(.*?)(// Swift LLVM fork downstream change end\n)|$$1/* NYXIAN: apple lies, lld works fine for MachO\n$$2*/\n$$3|s' \
 	llvm-project/lld/MachO/InputFiles.cpp
+	$(call log_info,patching swift's darwin toolchain not creating compiler jobs)
+	cp Patches/DarwinToolChains.cpp swift/lib/Driver/DarwinToolChains.cpp
 
 SwiftToolchain-iphoneos: swift
 	$(call log_info,building iOS-native swift toolchain ($(SWIFT_BRANCH)))
@@ -94,4 +96,5 @@ clean: clean-artifacts
 		! -name .gitignore \
 		! -name .github \
 		! -name Scripts \
+		! -name Patches \
 		-exec rm -rf {} +
