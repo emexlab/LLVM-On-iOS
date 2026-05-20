@@ -4,7 +4,7 @@ OS_VER ?= 16.0
 LLVM_ARCH := AArch64
 APPLE_ARCH := arm64
 TARGET_TRIPLE := $(APPLE_ARCH)-apple-ios$(OS_VER)
-SWIFT_BRANCH ?= swift-6.3.1-RELEASE
+SWIFT_BRANCH ?= swift-6.3.2-RELEASE
 SWIFT_SOURCE_DIR ?= swift
 SWIFT_TOOLCHAIN_ZIP := SwiftToolchain.zip
 SWIFT_TOOLCHAIN_ROOT ?= SwiftToolchain-iphoneos
@@ -28,11 +28,12 @@ swift:
 build/LLVMClangSwift_iphoneos/llvm-macosx-x86_64:
 	mkdir -p build/LLVMClangSwift_iphoneos; cd build/LLVMClangSwift_iphoneos; ln -sfn llvm-macosx-arm64 llvm-macosx-x86_64
 
-SwiftToolchain-iphoneos: swift build/LLVMClangSwift_iphoneos/llvm-macosx-x86_64
+.SwiftToolchain-iphoneos: swift build/LLVMClangSwift_iphoneos/llvm-macosx-x86_64
 	$(call log_info,building iOS-native swift toolchain ($(SWIFT_BRANCH)))
 	SWIFT_BRANCH="$(SWIFT_BRANCH)" SWIFT_SOURCE_DIR="$(SWIFT_SOURCE_DIR)" Scripts/build-swift-toolchain.sh build
+	touch .SwiftToolchain-iphoneos
 
-$(SWIFT_TOOLCHAIN_ZIP): SwiftToolchain-iphoneos
+$(SWIFT_TOOLCHAIN_ZIP): .SwiftToolchain-iphoneos
 	$(call log_info,packaging iOS-native swift toolchain)
 	Scripts/build-swift-toolchain.sh package
 
